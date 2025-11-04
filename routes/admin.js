@@ -3,6 +3,7 @@ const router = express.Router();
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
 const adminMiddleware = require('../middleware/adminMiddleware');
+const { sendTestReminder } = require('../services/scheduler');
 
 // Get all pending users
 router.get('/pending-users', protect, adminMiddleware, async (req, res) => {
@@ -81,6 +82,32 @@ router.delete('/reject-user/:userId', protect, adminMiddleware, async (req, res)
   } catch (error) {
     console.error('Error rejecting user:', error);
     res.status(500).json({ message: 'Hiba történt az elutasítás során' });
+  }
+});
+
+// Teszt emlékeztető email küldése
+router.post('/send-test-reminder/:userId', protect, adminMiddleware, async (req, res) => {
+  try {
+    const result = await sendTestReminder(req.params.userId);
+    
+    if (result.success) {
+      res.json({ 
+        success: true,
+        message: 'Teszt emlékeztető sikeresen elküldve',
+        messageId: result.messageId
+      });
+    } else {
+      res.status(400).json({ 
+        success: false,
+        message: result.message || result.error
+      });
+    }
+  } catch (error) {
+    console.error('Error sending test reminder:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Hiba történt az email küldése során' 
+    });
   }
 });
 

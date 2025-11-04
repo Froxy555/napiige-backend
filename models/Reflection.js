@@ -10,6 +10,10 @@ const reflectionSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  userProfileImage: {
+    type: String,
+    default: null
+  },
   date: {
     type: String,
     required: true // Formátum: YYYY-MM-DD

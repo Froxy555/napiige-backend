@@ -1,8 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const Recording = require('../models/Recording');
+const User = require('../models/User');
 const { protect } = require('../middleware/auth');
 const uploadRecording = require('../config/multerRecordings');
+const { sendEmail, emailTemplates } = require('../config/email');
 const path = require('path');
 const fs = require('fs');
 
@@ -89,6 +91,35 @@ router.post('/', protect, uploadRecording.single('audioFile'), async (req, res) 
 
     const populatedRecording = await Recording.findById(recording._id)
       .populate('uploadedBy', 'name username profileImage');
+
+    // Email értesítés küldése minden felhasználónak (kivéve a feltöltőt)
+    try {
+      const users = await User.find({ 
+        _id: { $ne: req.user._id },
+        email: { $exists: true, $ne: null }
+      });
+
+      const formattedDate = new Date(date).toLocaleDateString('hu-HU', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+
+      for (const user of users) {
+        await sendEmail({
+          to: user.email,
+          subject: `🎙️ Új felvétel: ${title}`,
+          html: emailTemplates.newRecording(
+            req.user.name,
+            title,
+            formattedDate
+          )
+        });
+      }
+    } catch (emailError) {
+      console.error('Email értesítés hiba:', emailError);
+      // Ne dobjunk hibát, ha az email küldés nem sikerül
+    }
 
     res.status(201).json({ 
       success: true, 

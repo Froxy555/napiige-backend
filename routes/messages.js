@@ -5,6 +5,7 @@ const Group = require('../models/Group');
 const { protect } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 const path = require('path');
+const { recordGroupMessage } = require('../services/activityService');
 
 // Csoport üzeneteinek lekérése
 router.get('/group/:groupId', protect, async (req, res) => {
@@ -49,11 +50,21 @@ router.get('/group/:groupId', protect, async (req, res) => {
 router.post('/', protect, upload.array('files', 5), async (req, res) => {
   try {
     const { groupId, content, replyTo } = req.body;
+    console.log('Üzenet küldés - req.body:', req.body);
+    console.log('Üzenet küldés - req.files:', req.files);
 
-    if (!groupId || !content) {
+    if (!groupId) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Csoport és üzenet megadása kötelező' 
+        message: 'Csoport megadása kötelező' 
+      });
+    }
+
+    // Legalább tartalom vagy fájl kell
+    if (!content && (!req.files || req.files.length === 0)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Üzenet vagy fájl megadása kötelező' 
       });
     }
 
@@ -103,9 +114,13 @@ router.post('/', protect, upload.array('files', 5), async (req, res) => {
       .populate('sender', 'name username profileImage')
       .populate('replyTo');
 
+    // Csoport üzenet aktivitás rögzítése
+    const activityResult = await recordGroupMessage(req.user._id);
+
     res.status(201).json({ 
       success: true, 
-      message: populatedMessage 
+      message: populatedMessage,
+      newAchievements: activityResult.newAchievements
     });
   } catch (error) {
     res.status(500).json({ 

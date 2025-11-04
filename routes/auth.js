@@ -121,10 +121,21 @@ router.post('/login', async (req, res) => {
 router.get('/me', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password');
-    res.json(user);
+    res.json({
+      success: true,
+      user: {
+        _id: user._id,
+        name: user.name,
+        username: user.username,
+        email: user.email,
+        profileImage: user.profileImage,
+        isApproved: user.isApproved,
+        isAdmin: user.isAdmin
+      }
+    });
   } catch (error) {
     console.error('Felhasználó lekérési hiba:', error);
-    res.status(500).json({ message: 'Szerver hiba történt' });
+    res.status(500).json({ success: false, message: 'Szerver hiba történt' });
   }
 });
 
@@ -164,6 +175,7 @@ router.put('/update-profile', protect, async (req, res) => {
       username: user.username,
       email: user.email,
       profileImage: user.profileImage,
+      isApproved: user.isApproved,
       token: generateToken(user._id)
     });
   } catch (error) {
@@ -243,6 +255,7 @@ router.post('/upload-profile-image', protect, upload.single('profileImage'), asy
       username: user.username,
       email: user.email,
       profileImage: user.profileImage,
+      isApproved: user.isApproved,
       token: generateToken(user._id)
     });
   } catch (error) {

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Reflection = require('../models/Reflection');
 const { protect } = require('../middleware/auth');
+const { recordReflection } = require('../services/activityService');
 
 // @route   GET /api/reflections/:date
 // @desc    Adott dátumhoz tartozó lelki üzenetek lekérése
@@ -12,6 +13,7 @@ router.get('/:date', protect, async (req, res) => {
     
     const reflections = await Reflection.find({ date })
       .sort({ createdAt: -1 })
+      .select('user userName userProfileImage date message scriptureReference createdAt')
       .populate('user', 'name username');
     
     res.json({
@@ -58,20 +60,22 @@ router.post('/', protect, async (req, res) => {
     }
 
     // Új reflection létrehozása
-    const reflection = await Reflection.create({
+    let reflection = await Reflection.create({
       user: req.user._id,
       userName: req.user.name,
+      userProfileImage: req.user.profileImage || null,
       date,
       message: message.trim(),
       scriptureReference: scriptureReference || ''
     });
 
-    // Populate user adatokkal
-    await reflection.populate('user', 'name username');
+    // Activity tracking
+    const activityResult = await recordReflection(req.user._id);
 
     res.status(201).json({
       success: true,
-      reflection
+      reflection,
+      newAchievements: activityResult.newAchievements
     });
   } catch (error) {
     console.error('Reflection létrehozási hiba:', error);
@@ -123,7 +127,6 @@ router.put('/:id', protect, async (req, res) => {
     // Módosítás
     reflection.message = message.trim();
     await reflection.save();
-    await reflection.populate('user', 'name username');
 
     res.json({
       success: true,

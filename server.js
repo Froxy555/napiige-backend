@@ -11,6 +11,8 @@ const groupsRoutes = require('./routes/groups');
 const messagesRoutes = require('./routes/messages');
 const recordingsRoutes = require('./routes/recordings');
 const adminRoutes = require('./routes/admin');
+const statsRoutes = require('./routes/stats');
+const { startScheduler } = require('./services/scheduler');
 
 const app = express();
 const http = require('http');
@@ -50,6 +52,9 @@ app.use('/api/recordings', recordingsRoutes);
 
 // Admin route-ok
 app.use('/api/admin', adminRoutes);
+
+// Stats route-ok
+app.use('/api/stats', statsRoutes);
 
 // Segédfüggvény a dátum formázásához (YYYY-MM-DD)
 function formatDate(date) {
@@ -198,4 +203,7 @@ server.listen(PORT, () => {
   console.log(`Backend szerver fut a http://localhost:${PORT} címen`);
   console.log(`API elérhető: http://localhost:${PORT}/api/igeszakaszok`);
   console.log('Socket.io szerver fut');
+  
+  // Scheduler indítása
+  startScheduler();
 });
