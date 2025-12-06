@@ -18,12 +18,11 @@ const protect = async (req, res, next) => {
       next();
     } catch (error) {
       console.error('Token hiba:', error.message);
-      res.status(401).json({ message: 'Nincs jogosultság, token hiba' });
+      return res.status(401).json({ message: 'Nincs jogosultság, token hiba' });
     }
-  }
-
-  if (!token) {
-    res.status(401).json({ message: 'Nincs jogosultság, hiányzó token' });
+  } else {
+    // Ha nincs Authorization header vagy nem Bearer típusú
+    return res.status(401).json({ message: 'Nincs jogosultság, hiányzó token' });
   }
 };
 
